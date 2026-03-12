@@ -27,26 +27,28 @@ public sealed class OpenAIChatProvider : IAIChatProvider
     private const string ApiUrl = "https://api.openai.com/v1/chat/completions";
     private const string Model = "gpt-4o-mini";
 
+    private volatile bool _isConnected;
+
     public string Id => ProviderId;
     public string DisplayName => "ChatGPT";
 
-    public bool IsConnected
-    {
-        get
-        {
-            var key = _tokenStore.LoadTokenAsync($"{ProviderId}:apikey").GetAwaiter().GetResult();
-            return !string.IsNullOrWhiteSpace(key);
-        }
-    }
+    /// <summary>Reflects the current auth state without blocking on async token lookup.</summary>
+    public bool IsConnected => _isConnected;
 
     public OpenAIChatProvider(
         IHttpClientFactory httpClientFactory,
         ITokenStore tokenStore,
+        OpenAIAuthProvider authProvider,
         ILogger<OpenAIChatProvider> logger)
     {
         _httpClientFactory = httpClientFactory;
         _tokenStore = tokenStore;
         _logger = logger;
+
+        // Seed the initial state and subscribe to future changes.
+        _isConnected = authProvider.ConnectionState == ProviderConnectionState.Connected;
+        authProvider.ConnectionStateChanged += (_, state) =>
+            _isConnected = state == ProviderConnectionState.Connected;
     }
 
     public async Task<string> SendMessageAsync(
@@ -80,13 +82,13 @@ public sealed class OpenAIChatProvider : IAIChatProvider
             ["messages"] = messages
         };
 
-        var http = _httpClientFactory.CreateClient();
+        using var http = _httpClientFactory.CreateClient();
         http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
 
-        var request = new StringContent(payload.ToJsonString(), Encoding.UTF8, "application/json");
+        var content = new StringContent(payload.ToJsonString(), Encoding.UTF8, "application/json");
         _logger.LogDebug("Sending request to OpenAI ({Model}).", Model);
 
-        var response = await http.PostAsync(ApiUrl, request, cancellationToken);
+        var response = await http.PostAsync(ApiUrl, content, cancellationToken);
         response.EnsureSuccessStatusCode();
 
         var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);

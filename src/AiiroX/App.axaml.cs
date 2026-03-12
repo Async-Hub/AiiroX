@@ -54,13 +54,19 @@ public partial class App : Application
         services.AddSingleton<ITokenStore, SecureTokenStore>();
         services.AddSingleton<IProviderSessionStore, JsonProviderSessionStore>();
 
+        // Concrete auth providers (registered first so chat providers can depend on them).
         services.AddSingleton<OpenAIAuthProvider>();
         services.AddSingleton<GeminiAuthProvider>();
+
+        // IAIAuthProvider registrations — both are enumerated by ProviderRegistry via IEnumerable<IAIAuthProvider>.
         services.AddSingleton<IAIAuthProvider>(sp => sp.GetRequiredService<OpenAIAuthProvider>());
         services.AddSingleton<IAIAuthProvider>(sp => sp.GetRequiredService<GeminiAuthProvider>());
 
+        // Concrete chat providers — depend on their matching auth provider for IsConnected state tracking.
         services.AddSingleton<OpenAIChatProvider>();
         services.AddSingleton<GeminiChatProvider>();
+
+        // IAIChatProvider registrations — both are enumerated by ProviderRegistry via IEnumerable<IAIChatProvider>.
         services.AddSingleton<IAIChatProvider>(sp => sp.GetRequiredService<OpenAIChatProvider>());
         services.AddSingleton<IAIChatProvider>(sp => sp.GetRequiredService<GeminiChatProvider>());
 

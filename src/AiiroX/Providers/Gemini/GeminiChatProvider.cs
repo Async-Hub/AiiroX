@@ -26,26 +26,28 @@ public sealed class GeminiChatProvider : IAIChatProvider
 
     private const string ApiBaseUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
 
+    private volatile bool _isConnected;
+
     public string Id => ProviderId;
     public string DisplayName => "Gemini";
 
-    public bool IsConnected
-    {
-        get
-        {
-            var key = _tokenStore.LoadTokenAsync($"{ProviderId}:apikey").GetAwaiter().GetResult();
-            return !string.IsNullOrWhiteSpace(key);
-        }
-    }
+    /// <summary>Reflects the current auth state without blocking on async token lookup.</summary>
+    public bool IsConnected => _isConnected;
 
     public GeminiChatProvider(
         IHttpClientFactory httpClientFactory,
         ITokenStore tokenStore,
+        GeminiAuthProvider authProvider,
         ILogger<GeminiChatProvider> logger)
     {
         _httpClientFactory = httpClientFactory;
         _tokenStore = tokenStore;
         _logger = logger;
+
+        // Seed the initial state and subscribe to future changes.
+        _isConnected = authProvider.ConnectionState == ProviderConnectionState.Connected;
+        authProvider.ConnectionStateChanged += (_, state) =>
+            _isConnected = state == ProviderConnectionState.Connected;
     }
 
     public async Task<string> SendMessageAsync(
@@ -70,13 +72,15 @@ public sealed class GeminiChatProvider : IAIChatProvider
         }
 
         var payload = new JsonObject { ["contents"] = contents };
-        var url = $"{ApiBaseUrl}?key={apiKey}";
 
-        var http = _httpClientFactory.CreateClient();
-        var request = new StringContent(payload.ToJsonString(), Encoding.UTF8, "application/json");
+        // Use the x-goog-api-key header to keep the key out of the URL (logs, server access logs, etc.)
+        using var http = _httpClientFactory.CreateClient();
+        http.DefaultRequestHeaders.Add("x-goog-api-key", apiKey);
+
+        var content = new StringContent(payload.ToJsonString(), Encoding.UTF8, "application/json");
         _logger.LogDebug("Sending request to Gemini.");
 
-        var response = await http.PostAsync(url, request, cancellationToken);
+        var response = await http.PostAsync(ApiBaseUrl, content, cancellationToken);
         response.EnsureSuccessStatusCode();
 
         var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);

@@ -7,6 +7,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Runtime.InteropServices;
 
 namespace AiiroX.Services;
 
@@ -22,6 +23,9 @@ public sealed class SecureTokenStore : ITokenStore
     private readonly Dictionary<string, string> _cache = new();
     private readonly SemaphoreSlim _lock = new(1, 1);
 
+    /// <summary>Initialization task; awaited by all public methods to ensure disk load completes first.</summary>
+    private readonly Task _initTask;
+
     public SecureTokenStore(ILogger<SecureTokenStore> logger)
     {
         _logger = logger;
@@ -29,11 +33,12 @@ public sealed class SecureTokenStore : ITokenStore
         var dir = Path.Combine(appData, "AiiroX");
         Directory.CreateDirectory(dir);
         _storePath = Path.Combine(dir, "tokens.dat");
-        _ = LoadFromDiskAsync();
+        _initTask = LoadFromDiskAsync();
     }
 
     public async Task SaveTokenAsync(string key, string value, CancellationToken cancellationToken = default)
     {
+        await _initTask.ConfigureAwait(false);
         await _lock.WaitAsync(cancellationToken);
         try
         {
@@ -45,6 +50,7 @@ public sealed class SecureTokenStore : ITokenStore
 
     public async Task<string?> LoadTokenAsync(string key, CancellationToken cancellationToken = default)
     {
+        await _initTask.ConfigureAwait(false);
         await _lock.WaitAsync(cancellationToken);
         try { return _cache.TryGetValue(key, out var v) ? v : null; }
         finally { _lock.Release(); }
@@ -52,6 +58,7 @@ public sealed class SecureTokenStore : ITokenStore
 
     public async Task DeleteTokenAsync(string key, CancellationToken cancellationToken = default)
     {
+        await _initTask.ConfigureAwait(false);
         await _lock.WaitAsync(cancellationToken);
         try
         {
@@ -68,8 +75,8 @@ public sealed class SecureTokenStore : ITokenStore
             var json = JsonSerializer.Serialize(_cache);
             var bytes = Encoding.UTF8.GetBytes(json);
             // TODO: Replace with OS keychain integration for production security.
-            var stored = Encoding.UTF8.GetBytes(Convert.ToBase64String(bytes));
-            await File.WriteAllBytesAsync(_storePath, stored, cancellationToken);
+            var b64 = Convert.ToBase64String(bytes);
+            await File.WriteAllTextAsync(_storePath, b64, cancellationToken);
         }
         catch (Exception ex)
         {
@@ -83,8 +90,7 @@ public sealed class SecureTokenStore : ITokenStore
         {
             if (!File.Exists(_storePath)) return;
 
-            var stored = await File.ReadAllBytesAsync(_storePath);
-            var b64 = Encoding.UTF8.GetString(stored);
+            var b64 = await File.ReadAllTextAsync(_storePath).ConfigureAwait(false);
             var bytes = Convert.FromBase64String(b64);
             var json = Encoding.UTF8.GetString(bytes);
             var dict = JsonSerializer.Deserialize<Dictionary<string, string>>(json);

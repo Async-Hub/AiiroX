@@ -58,7 +58,8 @@ public sealed class NullToBoolConverter : IValueConverter
 
 /// <summary>
 /// Returns true when a string has content (not null or empty).
-/// Functionally identical to <see cref="NullToBoolConverter"/>; kept as a separate type for semantic clarity.
+/// Delegates to <see cref="NullToBoolConverter"/>; kept as a distinct type so XAML bindings
+/// remain semantically self-documenting.
 /// </summary>
 public sealed class NullOrEmptyToBoolConverter : IValueConverter
 {

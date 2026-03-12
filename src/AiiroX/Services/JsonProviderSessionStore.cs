@@ -17,6 +17,9 @@ public sealed class JsonProviderSessionStore : IProviderSessionStore
     private Dictionary<string, bool> _sessions = new();
     private readonly SemaphoreSlim _lock = new(1, 1);
 
+    /// <summary>Initialization task; awaited by all public methods to ensure disk load completes first.</summary>
+    private readonly Task _initTask;
+
     public JsonProviderSessionStore(ILogger<JsonProviderSessionStore> logger)
     {
         _logger = logger;
@@ -24,11 +27,12 @@ public sealed class JsonProviderSessionStore : IProviderSessionStore
         var dir = Path.Combine(appData, "AiiroX");
         Directory.CreateDirectory(dir);
         _storePath = Path.Combine(dir, "sessions.json");
-        _ = LoadAsync();
+        _initTask = LoadAsync();
     }
 
     public async Task SaveSessionAsync(string providerId, bool isConnected, CancellationToken cancellationToken = default)
     {
+        await _initTask.ConfigureAwait(false);
         await _lock.WaitAsync(cancellationToken);
         try
         {
@@ -40,6 +44,7 @@ public sealed class JsonProviderSessionStore : IProviderSessionStore
 
     public async Task<bool> LoadSessionAsync(string providerId, CancellationToken cancellationToken = default)
     {
+        await _initTask.ConfigureAwait(false);
         await _lock.WaitAsync(cancellationToken);
         try { return _sessions.TryGetValue(providerId, out var v) && v; }
         finally { _lock.Release(); }
@@ -47,6 +52,7 @@ public sealed class JsonProviderSessionStore : IProviderSessionStore
 
     public async Task ClearSessionAsync(string providerId, CancellationToken cancellationToken = default)
     {
+        await _initTask.ConfigureAwait(false);
         await _lock.WaitAsync(cancellationToken);
         try
         {
@@ -71,7 +77,7 @@ public sealed class JsonProviderSessionStore : IProviderSessionStore
         try
         {
             if (!File.Exists(_storePath)) return;
-            var json = await File.ReadAllTextAsync(_storePath);
+            var json = await File.ReadAllTextAsync(_storePath).ConfigureAwait(false);
             _sessions = JsonSerializer.Deserialize<Dictionary<string, bool>>(json) ?? new();
         }
         catch (Exception ex) { _logger.LogWarning(ex, "Could not load session store; starting fresh."); }
