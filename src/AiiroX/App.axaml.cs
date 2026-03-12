@@ -1,48 +1,113 @@
+using AiiroX.Core.Interfaces;
+using AiiroX.Core.Registry;
+using AiiroX.Providers.Gemini;
+using AiiroX.Providers.OpenAI;
+using AiiroX.Services;
 using AiiroX.ViewModels;
 using AiiroX.Views;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
-using Avalonia.Data.Core;
 using Avalonia.Data.Core.Plugins;
 using Avalonia.Markup.Xaml;
+using Google.Apis.Util.Store;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using System;
+using System.IO;
 using System.Linq;
 
-namespace AiiroX
+namespace AiiroX;
+
+public partial class App : Application
 {
-    public partial class App : Application
+    private IServiceProvider? _services;
+
+    public override void Initialize()
     {
-        public override void Initialize()
-        {
-            AvaloniaXamlLoader.Load(this);
-        }
+        AvaloniaXamlLoader.Load(this);
+    }
 
-        public override void OnFrameworkInitializationCompleted()
+    public override void OnFrameworkInitializationCompleted()
+    {
+        var services = new ServiceCollection();
+        ConfigureServices(services);
+        _services = services.BuildServiceProvider();
+
+        var restorer = _services.GetRequiredService<ISessionRestoreService>();
+        _ = restorer.RestoreAllSessionsAsync();
+
+        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+            DisableAvaloniaDataAnnotationValidation();
+            desktop.MainWindow = new MainWindow
             {
-                // Avoid duplicate validations from both Avalonia and the CommunityToolkit. 
-                // More info: https://docs.avaloniaui.net/docs/guides/development-guides/data-validation#manage-validationplugins
-                DisableAvaloniaDataAnnotationValidation();
-                desktop.MainWindow = new MainWindow
-                {
-                    DataContext = new MainWindowViewModel(),
-                };
-            }
-
-            base.OnFrameworkInitializationCompleted();
+                DataContext = _services.GetRequiredService<MainWindowViewModel>(),
+            };
         }
 
-        private void DisableAvaloniaDataAnnotationValidation()
+        base.OnFrameworkInitializationCompleted();
+    }
+
+    private static void ConfigureServices(IServiceCollection services)
+    {
+        services.AddLogging(b => b.SetMinimumLevel(LogLevel.Debug));
+        services.AddHttpClient();
+
+        services.AddSingleton<ITokenStore, SecureTokenStore>();
+        services.AddSingleton<IProviderSessionStore, JsonProviderSessionStore>();
+
+        // Google OAuth token persistence — FileDataStore writes the refresh token as a JSON file.
+        // SECURITY NOTE: The token file is stored in plain JSON. A refresh token grants long-term
+        // account access. TODO: Replace FileDataStore with an OS-keychain-backed IDataStore
+        // (Windows Credential Manager / macOS Keychain / Linux Secret Service) for production.
+        services.AddSingleton<IDataStore>(_ =>
         {
-            // Get an array of plugins to remove
-            var dataValidationPluginsToRemove =
-                BindingPlugins.DataValidators.OfType<DataAnnotationsValidationPlugin>().ToArray();
+            var dir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "AiiroX", "google_oauth");
+            return new FileDataStore(dir, fullPath: true);
+        });
 
-            // remove each entry found
-            foreach (var plugin in dataValidationPluginsToRemove)
-            {
-                BindingPlugins.DataValidators.Remove(plugin);
-            }
-        }
+        // TODO: Set ClientId from a secrets manager or environment variable.
+        // Example: Environment.GetEnvironmentVariable("GOOGLE_CLIENT_ID")
+        // Desktop-app OAuth clients do NOT use a client secret — PKCE (RFC 7636) is used instead.
+        services.AddSingleton(new GoogleOAuthOptions
+        {
+            ClientId = "TODO_YOUR_GOOGLE_OAUTH_CLIENT_ID"
+        });
+
+        // Google OAuth service — manages browser sign-in flow and token refresh.
+        services.AddSingleton<GoogleOAuthService>();
+
+        // Concrete auth providers (registered first so chat providers can depend on them).
+        services.AddSingleton<OpenAIAuthProvider>();
+        services.AddSingleton<GeminiAuthProvider>();
+
+        // IAIAuthProvider registrations — both are enumerated by ProviderRegistry via IEnumerable<IAIAuthProvider>.
+        services.AddSingleton<IAIAuthProvider>(sp => sp.GetRequiredService<OpenAIAuthProvider>());
+        services.AddSingleton<IAIAuthProvider>(sp => sp.GetRequiredService<GeminiAuthProvider>());
+
+        // Concrete chat providers — depend on their matching auth provider for IsConnected state tracking.
+        services.AddSingleton<OpenAIChatProvider>();
+        services.AddSingleton<GeminiChatProvider>();
+
+        // IAIChatProvider registrations — both are enumerated by ProviderRegistry via IEnumerable<IAIChatProvider>.
+        services.AddSingleton<IAIChatProvider>(sp => sp.GetRequiredService<OpenAIChatProvider>());
+        services.AddSingleton<IAIChatProvider>(sp => sp.GetRequiredService<GeminiChatProvider>());
+
+        services.AddSingleton<ProviderRegistry>();
+        services.AddSingleton<ISessionRestoreService, SessionRestoreService>();
+
+        services.AddSingleton<AccountsViewModel>();
+        services.AddSingleton<ChatViewModel>();
+        services.AddSingleton<MainWindowViewModel>();
+    }
+
+    private void DisableAvaloniaDataAnnotationValidation()
+    {
+        var dataValidationPluginsToRemove =
+            BindingPlugins.DataValidators.OfType<DataAnnotationsValidationPlugin>().ToArray();
+        foreach (var plugin in dataValidationPluginsToRemove)
+            BindingPlugins.DataValidators.Remove(plugin);
     }
 }

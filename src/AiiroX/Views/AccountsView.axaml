@@ -1,0 +1,166 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:AiiroX.ViewModels"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
+             x:Class="AiiroX.Views.AccountsView"
+             x:DataType="vm:AccountsViewModel">
+
+    <ScrollViewer Padding="24">
+        <StackPanel Spacing="16" MaxWidth="600">
+            <TextBlock Text="Connected AI Providers"
+                       FontSize="22"
+                       FontWeight="Bold"
+                       Margin="0,0,0,8"/>
+            <ItemsControl ItemsSource="{Binding ProviderCards}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:ProviderCardViewModel">
+                        <Border Background="White"
+                                BorderBrush="#E0E0EF"
+                                BorderThickness="1"
+                                CornerRadius="10"
+                                Padding="16"
+                                Margin="0,0,0,12">
+                            <Grid RowDefinitions="Auto,Auto,Auto">
+                                <!-- Header row: name + status badge + disconnect button -->
+                                <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+                                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10">
+                                        <TextBlock Text="{Binding DisplayName}"
+                                                   FontSize="16"
+                                                   FontWeight="Bold"
+                                                   VerticalAlignment="Center"/>
+                                        <Border CornerRadius="12" Padding="8,2">
+                                            <Border.Background>
+                                                <SolidColorBrush Color="{Binding IsConnected, Converter={x:Static vm:BoolToColorConverter.Instance}}"/>
+                                            </Border.Background>
+                                            <TextBlock Text="{Binding StatusMessage}"
+                                                       FontSize="11"
+                                                       Foreground="White"/>
+                                        </Border>
+                                    </StackPanel>
+                                    <Button Grid.Column="1"
+                                            Command="{Binding DisconnectCommand}"
+                                            Content="Disconnect"
+                                            Background="#FFEEEE"
+                                            Foreground="#CC3333"
+                                            Padding="10,4"
+                                            CornerRadius="6"
+                                            IsVisible="{Binding IsConnected}"
+                                            IsEnabled="{Binding !IsBusy}"/>
+                                </Grid>
+
+                                <!-- Connect form: shown only when disconnected -->
+                                <StackPanel Grid.Row="1"
+                                            Orientation="Vertical"
+                                            Spacing="10"
+                                            Margin="0,12,0,0"
+                                            IsVisible="{Binding IsDisconnected}">
+
+                                    <!-- Google OAuth sign-in (Gemini and future OAuth providers) -->
+                                    <StackPanel Orientation="Vertical"
+                                                Spacing="8"
+                                                IsVisible="{Binding IsOAuthProvider}">
+
+                                        <!-- Setup guidance — shown when OAuth credentials are not yet configured -->
+                                        <Border CornerRadius="6"
+                                                Padding="12,10"
+                                                IsVisible="{Binding !IsOAuthReady}">
+                                            <Border.Background>
+                                                <SolidColorBrush Color="#FFF3CD"/>
+                                            </Border.Background>
+                                            <StackPanel Orientation="Vertical" Spacing="4">
+                                                <TextBlock Text="⚠ OAuth credentials required"
+                                                           FontWeight="SemiBold"
+                                                           FontSize="13"
+                                                           Foreground="#856404"/>
+                                                <TextBlock Text="{Binding OAuthSetupGuidance}"
+                                                           TextWrapping="Wrap"
+                                                           FontSize="12"
+                                                           Foreground="#856404"/>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <TextBlock Text="Sign in with your Google account to connect:"
+                                                   Foreground="#555566"
+                                                   FontSize="13"
+                                                   IsVisible="{Binding IsOAuthReady}"/>
+                                        <Button Command="{Binding ConnectCommand}"
+                                                IsEnabled="{Binding IsOAuthReady}"
+                                                Padding="14,8"
+                                                CornerRadius="6"
+                                                HorizontalAlignment="Left">
+                                            <Button.Background>
+                                                <SolidColorBrush Color="#4285F4"/>
+                                            </Button.Background>
+                                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                                <!-- Google "G" logo text approximation -->
+                                                <Border Width="22" Height="22" CornerRadius="11"
+                                                        Background="White"
+                                                        VerticalAlignment="Center">
+                                                    <TextBlock Text="G"
+                                                               FontWeight="Bold"
+                                                               FontSize="13"
+                                                               Foreground="#4285F4"
+                                                               HorizontalAlignment="Center"
+                                                               VerticalAlignment="Center"/>
+                                                </Border>
+                                                <TextBlock Text="Sign in with Google"
+                                                           Foreground="White"
+                                                           FontSize="14"
+                                                           VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </Button>
+                                        <TextBlock Text="A browser window will open for Google sign-in."
+                                                   Foreground="#888899"
+                                                   FontSize="11"
+                                                   IsVisible="{Binding IsOAuthReady}"/>
+                                    </StackPanel>
+
+                                    <!-- API key input (OpenAI and future API-key providers) -->
+                                    <StackPanel Orientation="Vertical"
+                                                Spacing="8"
+                                                IsVisible="{Binding !IsOAuthProvider}">
+                                        <TextBlock Text="Enter your API key to connect:"
+                                                   Foreground="#555566"
+                                                   FontSize="13"/>
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <TextBox Grid.Column="0"
+                                                     Text="{Binding CredentialInput}"
+                                                     Watermark="Enter API key"
+                                                     PasswordChar="●"
+                                                     Margin="0,0,8,0"/>
+                                            <Button Grid.Column="1"
+                                                    Command="{Binding ConnectCommand}"
+                                                    Content="Connect"
+                                                    Background="#5B5BD6"
+                                                    Foreground="White"
+                                                    Padding="12,6"
+                                                    CornerRadius="6"
+                                                    IsEnabled="{Binding !IsBusy}"/>
+                                        </Grid>
+                                    </StackPanel>
+                                </StackPanel>
+
+                                <!-- Busy indicator row -->
+                                <StackPanel Grid.Row="2"
+                                            Orientation="Horizontal"
+                                            Spacing="8"
+                                            Margin="0,6,0,0"
+                                            IsVisible="{Binding IsBusy}">
+                                    <TextBlock Text="⏳"
+                                               FontSize="13"
+                                               VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding StatusMessage}"
+                                               FontSize="12"
+                                               Foreground="#555566"
+                                               VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

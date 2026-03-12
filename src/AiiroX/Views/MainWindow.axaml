@@ -3,18 +3,47 @@
         xmlns:vm="using:AiiroX.ViewModels"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="650"
         x:Class="AiiroX.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/aiirox_icon_pack/aiirox.ico"
-        Title="AiiroX">
+        Title="AiiroX — AI Chat"
+        MinWidth="700" MinHeight="500">
 
     <Design.DataContext>
-        <!-- This only sets the DataContext for the previewer in an IDE,
-             to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
-        <vm:MainWindowViewModel/>
+        <!-- Design-time context not set; VM requires DI injection at runtime -->
     </Design.DataContext>
 
-    <TextBlock Text="{Binding Greeting}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+    <Grid RowDefinitions="Auto,*">
+        <!-- Top Navigation Bar -->
+        <Border Grid.Row="0" Background="#1E1E2E" Padding="12,8">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <TextBlock Text="AiiroX" FontSize="18" FontWeight="Bold"
+                           Foreground="White" VerticalAlignment="Center" Margin="0,0,16,0"/>
+                <Button Command="{Binding ShowChatCommand}"
+                        Classes="nav-btn"
+                        Content="💬 Chat"/>
+                <Button Command="{Binding ShowAccountsCommand}"
+                        Classes="nav-btn"
+                        Content="🔑 Accounts"/>
+            </StackPanel>
+        </Border>
 
+        <!-- Content Area -->
+        <ContentControl Grid.Row="1" Content="{Binding CurrentPage}"/>
+    </Grid>
+
+    <Window.Styles>
+        <Style Selector="Button.nav-btn">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Padding" Value="12,6"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="FontSize" Value="14"/>
+        </Style>
+        <Style Selector="Button.nav-btn:pointerover /template/ ContentPresenter">
+            <Setter Property="Background" Value="#2D2D3F"/>
+        </Style>
+    </Window.Styles>
 </Window>
+

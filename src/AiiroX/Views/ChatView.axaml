@@ -1,0 +1,114 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:AiiroX.ViewModels"
+             xmlns:models="using:AiiroX.Core.Models"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="600"
+             x:Class="AiiroX.Views.ChatView"
+             x:DataType="vm:ChatViewModel">
+
+    <Grid RowDefinitions="Auto,*,Auto,Auto">
+        <!-- Provider Selector -->
+        <Border Grid.Row="0" Background="#F5F5FA" Padding="12,8" BorderBrush="#E0E0EF" BorderThickness="0,0,0,1">
+            <StackPanel Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                <TextBlock Text="Provider:" VerticalAlignment="Center" FontWeight="Medium"/>
+                <ComboBox ItemsSource="{Binding AvailableProviders}"
+                          SelectedItem="{Binding SelectedProvider}"
+                          MinWidth="150">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="vm:ProviderCardViewModel">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Ellipse Width="10" Height="10" VerticalAlignment="Center">
+                                    <Ellipse.Fill>
+                                        <SolidColorBrush Color="{Binding IsConnected, Converter={x:Static vm:BoolToColorConverter.Instance}}"/>
+                                    </Ellipse.Fill>
+                                </Ellipse>
+                                <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+                <TextBlock Text="{Binding SelectedProvider.StatusMessage}"
+                           VerticalAlignment="Center"
+                           Foreground="#666677"
+                           FontSize="12"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Messages List -->
+        <ScrollViewer Grid.Row="1" Padding="12">
+            <ItemsControl ItemsSource="{Binding Messages}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="models:ChatMessage">
+                        <Border Margin="0,4"
+                                Padding="12,8"
+                                CornerRadius="8"
+                                MaxWidth="600"
+                                HorizontalAlignment="{Binding Role, Converter={x:Static vm:RoleToAlignmentConverter.Instance}}">
+                            <Border.Background>
+                                <SolidColorBrush Color="{Binding Role, Converter={x:Static vm:RoleToColorConverter.Instance}}"/>
+                            </Border.Background>
+                            <StackPanel Spacing="4">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <TextBlock Text="{Binding ProviderName}"
+                                               FontSize="11"
+                                               FontWeight="Bold"
+                                               Foreground="#888899"
+                                               IsVisible="{Binding ProviderName, Converter={x:Static vm:NullToBoolConverter.Instance}}"/>
+                                    <TextBlock Text="{Binding Timestamp, StringFormat='{}{0:HH:mm}'}"
+                                               FontSize="11"
+                                               Foreground="#888899"/>
+                                </StackPanel>
+                                <SelectableTextBlock Text="{Binding Content}"
+                                               TextWrapping="Wrap"
+                                               FontSize="14"/>
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+
+        <!-- Error Message -->
+        <Border Grid.Row="2"
+                Background="#FFF3F3"
+                BorderBrush="#FFAAAA"
+                BorderThickness="1"
+                Padding="12,6"
+                CornerRadius="4"
+                Margin="12,0"
+                IsVisible="{Binding ErrorMessage, Converter={x:Static vm:NullOrEmptyToBoolConverter.Instance}}">
+            <TextBlock Text="{Binding ErrorMessage}" Foreground="#CC3333" TextWrapping="Wrap"/>
+        </Border>
+
+        <!-- Input Area -->
+        <Border Grid.Row="3" Padding="12" BorderBrush="#E0E0EF" BorderThickness="0,1,0,0">
+            <Grid ColumnDefinitions="*,Auto,Auto">
+                <TextBox Grid.Column="0"
+                         Text="{Binding UserInput}"
+                         Watermark="Type a message..."
+                         AcceptsReturn="False"
+                         MaxHeight="80"
+                         VerticalAlignment="Center"
+                         Margin="0,0,8,0"/>
+                <Button Grid.Column="1"
+                        Command="{Binding SendMessageCommand}"
+                        Content="Send"
+                        Background="#5B5BD6"
+                        Foreground="White"
+                        Padding="16,8"
+                        CornerRadius="6"
+                        Margin="0,0,4,0"
+                        IsEnabled="{Binding !IsLoading}"/>
+                <Button Grid.Column="2"
+                        Command="{Binding CancelRequestCommand}"
+                        Content="✕"
+                        Background="#E0E0EF"
+                        Padding="10,8"
+                        CornerRadius="6"
+                        IsVisible="{Binding IsLoading}"/>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>
