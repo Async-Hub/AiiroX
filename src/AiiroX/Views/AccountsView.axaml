@@ -1,0 +1,93 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:AiiroX.ViewModels"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600"
+             x:Class="AiiroX.Views.AccountsView"
+             x:DataType="vm:AccountsViewModel">
+
+    <ScrollViewer Padding="24">
+        <StackPanel Spacing="16" MaxWidth="600">
+            <TextBlock Text="Connected AI Providers"
+                       FontSize="22"
+                       FontWeight="Bold"
+                       Margin="0,0,0,8"/>
+            <ItemsControl ItemsSource="{Binding ProviderCards}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:ProviderCardViewModel">
+                        <Border Background="White"
+                                BorderBrush="#E0E0EF"
+                                BorderThickness="1"
+                                CornerRadius="10"
+                                Padding="16"
+                                Margin="0,0,0,12">
+                            <Grid RowDefinitions="Auto,Auto,Auto">
+                                <!-- Header -->
+                                <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+                                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="10">
+                                        <TextBlock Text="{Binding DisplayName}"
+                                                   FontSize="16"
+                                                   FontWeight="Bold"
+                                                   VerticalAlignment="Center"/>
+                                        <Border CornerRadius="12" Padding="8,2">
+                                            <Border.Background>
+                                                <SolidColorBrush Color="{Binding IsConnected, Converter={x:Static vm:BoolToColorConverter.Instance}}"/>
+                                            </Border.Background>
+                                            <TextBlock Text="{Binding StatusMessage}"
+                                                       FontSize="11"
+                                                       Foreground="White"/>
+                                        </Border>
+                                    </StackPanel>
+                                    <Button Grid.Column="1"
+                                            Command="{Binding DisconnectCommand}"
+                                            Content="Disconnect"
+                                            Background="#FFEEEE"
+                                            Foreground="#CC3333"
+                                            Padding="10,4"
+                                            CornerRadius="6"
+                                            IsVisible="{Binding IsConnected}"
+                                            IsEnabled="{Binding !IsBusy}"/>
+                                </Grid>
+
+                                <!-- Connect Form -->
+                                <StackPanel Grid.Row="1"
+                                            Orientation="Vertical"
+                                            Spacing="8"
+                                            Margin="0,12,0,0"
+                                            IsVisible="{Binding IsDisconnected}">
+                                    <TextBlock Text="Enter your API key to connect:"
+                                               Foreground="#555566"
+                                               FontSize="13"/>
+                                    <Grid ColumnDefinitions="*,Auto">
+                                        <TextBox Grid.Column="0"
+                                                 Text="{Binding CredentialInput}"
+                                                 Watermark="sk-... or AI API Key"
+                                                 PasswordChar="●"
+                                                 Margin="0,0,8,0"/>
+                                        <Button Grid.Column="1"
+                                                Command="{Binding ConnectCommand}"
+                                                Content="Connect"
+                                                Background="#5B5BD6"
+                                                Foreground="White"
+                                                Padding="12,6"
+                                                CornerRadius="6"
+                                                IsEnabled="{Binding !IsBusy}"/>
+                                    </Grid>
+                                </StackPanel>
+
+                                <!-- Busy feedback -->
+                                <TextBlock Grid.Row="2"
+                                           Text="{Binding StatusMessage}"
+                                           FontSize="12"
+                                           Foreground="#CC3333"
+                                           Margin="0,4,0,0"
+                                           IsVisible="{Binding IsBusy}"/>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
