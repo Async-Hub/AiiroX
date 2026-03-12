@@ -68,13 +68,12 @@ public partial class App : Application
             return new FileDataStore(dir, fullPath: true);
         });
 
-        // TODO: Set ClientId and ClientSecret from a secrets manager or environment variables.
-        // Example: read from environment: Environment.GetEnvironmentVariable("GOOGLE_CLIENT_ID")
-        // Call options.Validate() here to fail fast at startup if credentials are not configured.
+        // TODO: Set ClientId from a secrets manager or environment variable.
+        // Example: Environment.GetEnvironmentVariable("GOOGLE_CLIENT_ID")
+        // Desktop-app OAuth clients do NOT use a client secret — PKCE (RFC 7636) is used instead.
         services.AddSingleton(new GoogleOAuthOptions
         {
-            ClientId = "TODO_YOUR_GOOGLE_OAUTH_CLIENT_ID",
-            ClientSecret = "TODO_YOUR_GOOGLE_OAUTH_CLIENT_SECRET"
+            ClientId = "TODO_YOUR_GOOGLE_OAUTH_CLIENT_ID"
         });
 
         // Google OAuth service — manages browser sign-in flow and token refresh.

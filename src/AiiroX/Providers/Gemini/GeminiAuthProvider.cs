@@ -10,8 +10,9 @@ namespace AiiroX.Providers.Gemini;
 
 /// <summary>
 /// Google OAuth 2.0 authentication for the Gemini provider.
-/// Uses the installed-application flow: opens the system browser and listens on localhost
-/// for the OAuth callback. The refresh token is persisted via <see cref="GoogleOAuthService"/>
+/// Uses Authorization Code Flow with PKCE (RFC 7636): opens the system browser and
+/// listens on localhost for the OAuth callback. No client secret is required or used.
+/// The refresh token is persisted via <see cref="GoogleOAuthService"/>
 /// so the session is automatically restored on the next app launch.
 /// </summary>
 public sealed class GeminiAuthProvider : IAIAuthProvider
@@ -28,18 +29,17 @@ public sealed class GeminiAuthProvider : IAIAuthProvider
 
     /// <inheritdoc/>
     /// <remarks>
-    /// Reflects whether the Google OAuth client credentials (ClientId / ClientSecret) have been
-    /// configured in <see cref="GoogleOAuthOptions"/>. When <c>false</c> the sign-in button
-    /// should show a setup guidance notice and the connect attempt returns immediately with
-    /// <see cref="ProviderConnectionState.Error"/>.
+    /// Reflects whether the Google OAuth Client ID has been configured in
+    /// <see cref="GoogleOAuthOptions"/>. No client secret is used (PKCE flow).
+    /// When <c>false</c> the sign-in button shows a setup guidance notice.
     /// </remarks>
     public bool IsAuthConfigured => _oauthService.IsConfigured;
 
     /// <inheritdoc/>
     public string SetupGuidance =>
         "Register a Desktop-app OAuth 2.0 client at console.cloud.google.com, " +
-        "enable the Generative Language API, then set ClientId and ClientSecret " +
-        "in GoogleOAuthOptions (App.axaml.cs).";
+        "enable the Generative Language API, then set GoogleOAuthOptions.ClientId " +
+        "in App.axaml.cs. No client secret is required.";
 
     public ProviderConnectionState ConnectionState => _state;
     public event EventHandler<ProviderConnectionState>? ConnectionStateChanged;

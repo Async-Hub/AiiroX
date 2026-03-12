@@ -38,9 +38,9 @@ public sealed partial class ProviderCardViewModel : ViewModelBase
     public bool IsOAuthProvider => _authProvider.UsesOAuthFlow;
 
     /// <summary>
-    /// <c>true</c> when the OAuth client credentials (ClientId / ClientSecret) have been
-    /// configured in the application. Always <c>true</c> for API-key providers.
-    /// When <c>false</c> the Gemini card shows a setup guidance notice.
+    /// <c>true</c> when the OAuth Client ID has been configured in the application.
+    /// Always <c>true</c> for API-key providers. When <c>false</c> the provider card
+    /// shows a setup guidance notice (PKCE flow — no client secret required).
     /// </summary>
     public bool IsOAuthReady => _authProvider.IsAuthConfigured;
 

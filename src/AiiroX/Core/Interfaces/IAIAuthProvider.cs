@@ -20,9 +20,9 @@ public interface IAIAuthProvider
 
     /// <summary>
     /// Whether the provider's authentication prerequisites are satisfied.
-    /// For OAuth providers this means the OAuth client credentials (ClientId / ClientSecret)
-    /// have been configured; for API-key providers this is always <c>true</c> because the key
-    /// is supplied at runtime by the user.
+    /// For Google OAuth providers this means the OAuth Client ID has been configured
+    /// (PKCE flow — no client secret required); for API-key providers this is always
+    /// <c>true</c> because the key is supplied at runtime by the user.
     /// </summary>
     bool IsAuthConfigured { get; }
 
