@@ -21,6 +21,14 @@ public sealed class OpenAIAuthProvider : IAIAuthProvider
     /// <inheritdoc/>
     public bool UsesOAuthFlow => false;
 
+    /// <inheritdoc/>
+    /// API-key providers are always ready; the key is supplied at runtime by the user.
+    public bool IsAuthConfigured => true;
+
+    /// <inheritdoc/>
+    /// API-key providers need no pre-configuration, so guidance is empty.
+    public string SetupGuidance => string.Empty;
+
     public ProviderConnectionState ConnectionState => _state;
     public event EventHandler<ProviderConnectionState>? ConnectionStateChanged;
 

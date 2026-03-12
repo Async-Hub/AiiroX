@@ -20,6 +20,12 @@ namespace AiiroX.Services;
 /// </remarks>
 public sealed class GoogleOAuthOptions
 {
+    /// <summary>
+    /// Prefix used for placeholder credential values (e.g. <c>TODO_YOUR_GOOGLE_OAUTH_CLIENT_ID</c>).
+    /// <see cref="Validate"/> and <see cref="GoogleOAuthService.IsConfigured"/> both detect this prefix.
+    /// </summary>
+    internal const string PlaceholderPrefix = "TODO_";
+
     /// <summary>Google OAuth 2.0 Client ID (required).</summary>
     public string ClientId { get; init; } = string.Empty;
 
@@ -32,13 +38,13 @@ public sealed class GoogleOAuthOptions
     /// </summary>
     public void Validate()
     {
-        if (string.IsNullOrWhiteSpace(ClientId) || ClientId.StartsWith("TODO_"))
+        if (string.IsNullOrWhiteSpace(ClientId) || ClientId.StartsWith(PlaceholderPrefix))
             throw new InvalidOperationException(
                 "Google OAuth Client ID is not configured. " +
                 "Register a Desktop-app OAuth 2.0 client at https://console.cloud.google.com/ " +
                 "and set GoogleOAuthOptions.ClientId before starting the application.");
 
-        if (string.IsNullOrWhiteSpace(ClientSecret) || ClientSecret.StartsWith("TODO_"))
+        if (string.IsNullOrWhiteSpace(ClientSecret) || ClientSecret.StartsWith(PlaceholderPrefix))
             throw new InvalidOperationException(
                 "Google OAuth Client Secret is not configured. " +
                 "Register a Desktop-app OAuth 2.0 client at https://console.cloud.google.com/ " +

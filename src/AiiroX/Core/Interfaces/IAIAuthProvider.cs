@@ -18,6 +18,20 @@ public interface IAIAuthProvider
     /// </summary>
     bool UsesOAuthFlow { get; }
 
+    /// <summary>
+    /// Whether the provider's authentication prerequisites are satisfied.
+    /// For OAuth providers this means the OAuth client credentials (ClientId / ClientSecret)
+    /// have been configured; for API-key providers this is always <c>true</c> because the key
+    /// is supplied at runtime by the user.
+    /// </summary>
+    bool IsAuthConfigured { get; }
+
+    /// <summary>
+    /// Human-readable setup instructions displayed in the UI when <see cref="IsAuthConfigured"/>
+    /// is <c>false</c>.  Returns an empty string when no setup is required (e.g. API-key providers).
+    /// </summary>
+    string SetupGuidance { get; }
+
     /// <summary>Attempts to connect/authenticate with the provider.</summary>
     Task<bool> ConnectAsync(string credential, CancellationToken cancellationToken = default);
 

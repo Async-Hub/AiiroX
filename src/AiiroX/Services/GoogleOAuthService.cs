@@ -49,10 +49,22 @@ public sealed class GoogleOAuthService
     /// Launches the Google sign-in flow in the default browser.
     /// If valid tokens are already stored in <see cref="IDataStore"/>, returns immediately
     /// without opening the browser.
+    /// Returns <c>false</c> immediately (without opening a browser) when
+    /// <see cref="IsConfigured"/> is <c>false</c>, avoiding the Google
+    /// <c>invalid_client</c> error page caused by placeholder credentials.
     /// </summary>
     /// <returns><c>true</c> when a valid credential is obtained; <c>false</c> on cancellation or failure.</returns>
     public async Task<bool> AuthorizeAsync(CancellationToken cancellationToken = default)
     {
+        if (!IsConfigured)
+        {
+            _logger.LogError(
+                "Google OAuth credentials are not configured. " +
+                "Set a valid ClientId and ClientSecret in GoogleOAuthOptions before signing in. " +
+                "Register a Desktop-app OAuth 2.0 client at https://console.cloud.google.com/");
+            return false;
+        }
+
         try
         {
             var flow = CreateFlow();
@@ -151,6 +163,18 @@ public sealed class GoogleOAuthService
 
     /// <summary>Whether a valid credential is currently loaded in memory.</summary>
     public bool HasCredential => _credential is not null;
+
+    /// <summary>
+    /// <c>true</c> when both <see cref="GoogleOAuthOptions.ClientId"/> and
+    /// <see cref="GoogleOAuthOptions.ClientSecret"/> are non-empty, non-placeholder values.
+    /// When <c>false</c>, <see cref="AuthorizeAsync"/> will return <c>false</c> immediately
+    /// without opening a browser, preventing the Google <c>invalid_client</c> error page.
+    /// </summary>
+    public bool IsConfigured =>
+        !string.IsNullOrWhiteSpace(_options.ClientId) &&
+        !_options.ClientId.StartsWith(GoogleOAuthOptions.PlaceholderPrefix) &&
+        !string.IsNullOrWhiteSpace(_options.ClientSecret) &&
+        !_options.ClientSecret.StartsWith(GoogleOAuthOptions.PlaceholderPrefix);
 
     private GoogleAuthorizationCodeFlow CreateFlow() =>
         new(new GoogleAuthorizationCodeFlow.Initializer

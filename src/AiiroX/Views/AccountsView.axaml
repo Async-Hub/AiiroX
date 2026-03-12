@@ -61,11 +61,32 @@
                                     <StackPanel Orientation="Vertical"
                                                 Spacing="8"
                                                 IsVisible="{Binding IsOAuthProvider}">
+
+                                        <!-- Setup guidance — shown when OAuth credentials are not yet configured -->
+                                        <Border CornerRadius="6"
+                                                Padding="12,10"
+                                                IsVisible="{Binding !IsOAuthReady}">
+                                            <Border.Background>
+                                                <SolidColorBrush Color="#FFF3CD"/>
+                                            </Border.Background>
+                                            <StackPanel Orientation="Vertical" Spacing="4">
+                                                <TextBlock Text="⚠ OAuth credentials required"
+                                                           FontWeight="SemiBold"
+                                                           FontSize="13"
+                                                           Foreground="#856404"/>
+                                                <TextBlock Text="{Binding OAuthSetupGuidance}"
+                                                           TextWrapping="Wrap"
+                                                           FontSize="12"
+                                                           Foreground="#856404"/>
+                                            </StackPanel>
+                                        </Border>
+
                                         <TextBlock Text="Sign in with your Google account to connect:"
                                                    Foreground="#555566"
-                                                   FontSize="13"/>
+                                                   FontSize="13"
+                                                   IsVisible="{Binding IsOAuthReady}"/>
                                         <Button Command="{Binding ConnectCommand}"
-                                                IsEnabled="{Binding !IsBusy}"
+                                                IsEnabled="{Binding IsOAuthReady}"
                                                 Padding="14,8"
                                                 CornerRadius="6"
                                                 HorizontalAlignment="Left">
@@ -92,7 +113,8 @@
                                         </Button>
                                         <TextBlock Text="A browser window will open for Google sign-in."
                                                    Foreground="#888899"
-                                                   FontSize="11"/>
+                                                   FontSize="11"
+                                                   IsVisible="{Binding IsOAuthReady}"/>
                                     </StackPanel>
 
                                     <!-- API key input (OpenAI and future API-key providers) -->

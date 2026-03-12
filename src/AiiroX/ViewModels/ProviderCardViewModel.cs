@@ -37,6 +37,19 @@ public sealed partial class ProviderCardViewModel : ViewModelBase
     /// </summary>
     public bool IsOAuthProvider => _authProvider.UsesOAuthFlow;
 
+    /// <summary>
+    /// <c>true</c> when the OAuth client credentials (ClientId / ClientSecret) have been
+    /// configured in the application. Always <c>true</c> for API-key providers.
+    /// When <c>false</c> the Gemini card shows a setup guidance notice.
+    /// </summary>
+    public bool IsOAuthReady => _authProvider.IsAuthConfigured;
+
+    /// <summary>
+    /// Provider-specific setup instructions shown in the UI when <see cref="IsOAuthReady"/>
+    /// is <c>false</c>. Empty for API-key providers.
+    /// </summary>
+    public string OAuthSetupGuidance => _authProvider.SetupGuidance;
+
     public ProviderCardViewModel(IAIChatProvider chatProvider, IAIAuthProvider authProvider)
     {
         _chatProvider = chatProvider;
@@ -82,9 +95,15 @@ public sealed partial class ProviderCardViewModel : ViewModelBase
             if (!IsOAuthProvider) CredentialInput = string.Empty;
 
             if (!success)
-                StatusMessage = IsOAuthProvider
-                    ? "Google sign-in failed or was cancelled."
-                    : "Connection failed. Check your API key.";
+            {
+                // Distinguish: credentials missing/invalid config vs. user cancelled vs. other failure.
+                if (IsOAuthProvider && ConnectionState == ProviderConnectionState.Error)
+                    StatusMessage = $"Sign-in failed: {OAuthSetupGuidance}";
+                else if (IsOAuthProvider)
+                    StatusMessage = "Sign-in was cancelled. Click \"Sign in with Google\" to try again.";
+                else
+                    StatusMessage = "Connection failed. Check your API key.";
+            }
         }
         finally { IsBusy = false; }
     }
