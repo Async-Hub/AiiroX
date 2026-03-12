@@ -30,6 +30,13 @@ public sealed partial class ProviderCardViewModel : ViewModelBase
     public bool IsConnected => ConnectionState == ProviderConnectionState.Connected;
     public bool IsDisconnected => ConnectionState == ProviderConnectionState.Disconnected;
 
+    /// <summary>
+    /// <c>true</c> when this provider authenticates via browser-based OAuth
+    /// (e.g. Google Sign-In) rather than an API key entered by the user.
+    /// Drives which connect UI is shown on the provider card.
+    /// </summary>
+    public bool IsOAuthProvider => _authProvider.UsesOAuthFlow;
+
     public ProviderCardViewModel(IAIChatProvider chatProvider, IAIAuthProvider authProvider)
     {
         _chatProvider = chatProvider;
@@ -50,7 +57,7 @@ public sealed partial class ProviderCardViewModel : ViewModelBase
     private void UpdateStatus() => StatusMessage = ConnectionState switch
     {
         ProviderConnectionState.Connected => "Connected",
-        ProviderConnectionState.Connecting => "Connecting...",
+        ProviderConnectionState.Connecting => IsOAuthProvider ? "Signing in with Google..." : "Connecting...",
         ProviderConnectionState.Error => "Connection failed",
         _ => "Not connected"
     };
@@ -58,17 +65,26 @@ public sealed partial class ProviderCardViewModel : ViewModelBase
     [RelayCommand]
     private async Task ConnectAsync()
     {
-        if (string.IsNullOrWhiteSpace(CredentialInput))
+        // API-key providers require the user to type a key first.
+        if (!IsOAuthProvider && string.IsNullOrWhiteSpace(CredentialInput))
         {
             StatusMessage = "Please enter your API key.";
             return;
         }
+
         IsBusy = true;
         try
         {
-            var success = await _authProvider.ConnectAsync(CredentialInput);
-            CredentialInput = string.Empty;
-            if (!success) StatusMessage = "Connection failed. Check your API key.";
+            // OAuth providers ignore the credential string; the browser flow is handled internally.
+            var success = await _authProvider.ConnectAsync(
+                IsOAuthProvider ? string.Empty : CredentialInput);
+
+            if (!IsOAuthProvider) CredentialInput = string.Empty;
+
+            if (!success)
+                StatusMessage = IsOAuthProvider
+                    ? "Google sign-in failed or was cancelled."
+                    : "Connection failed. Check your API key.";
         }
         finally { IsBusy = false; }
     }

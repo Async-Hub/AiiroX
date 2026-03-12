@@ -17,6 +17,10 @@ public sealed class OpenAIAuthProvider : IAIAuthProvider
     private ProviderConnectionState _state = ProviderConnectionState.Disconnected;
 
     public string ProviderId => OpenAIChatProvider.ProviderId;
+
+    /// <inheritdoc/>
+    public bool UsesOAuthFlow => false;
+
     public ProviderConnectionState ConnectionState => _state;
     public event EventHandler<ProviderConnectionState>? ConnectionStateChanged;
 

@@ -9,9 +9,11 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Data.Core.Plugins;
 using Avalonia.Markup.Xaml;
+using Google.Apis.Util.Store;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System;
+using System.IO;
 using System.Linq;
 
 namespace AiiroX;
@@ -53,6 +55,30 @@ public partial class App : Application
 
         services.AddSingleton<ITokenStore, SecureTokenStore>();
         services.AddSingleton<IProviderSessionStore, JsonProviderSessionStore>();
+
+        // Google OAuth token persistence — FileDataStore writes the refresh token as a JSON file.
+        // SECURITY NOTE: The token file is stored in plain JSON. A refresh token grants long-term
+        // account access. TODO: Replace FileDataStore with an OS-keychain-backed IDataStore
+        // (Windows Credential Manager / macOS Keychain / Linux Secret Service) for production.
+        services.AddSingleton<IDataStore>(_ =>
+        {
+            var dir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "AiiroX", "google_oauth");
+            return new FileDataStore(dir, fullPath: true);
+        });
+
+        // TODO: Set ClientId and ClientSecret from a secrets manager or environment variables.
+        // Example: read from environment: Environment.GetEnvironmentVariable("GOOGLE_CLIENT_ID")
+        // Call options.Validate() here to fail fast at startup if credentials are not configured.
+        services.AddSingleton(new GoogleOAuthOptions
+        {
+            ClientId = "TODO_YOUR_GOOGLE_OAUTH_CLIENT_ID",
+            ClientSecret = "TODO_YOUR_GOOGLE_OAUTH_CLIENT_SECRET"
+        });
+
+        // Google OAuth service — manages browser sign-in flow and token refresh.
+        services.AddSingleton<GoogleOAuthService>();
 
         // Concrete auth providers (registered first so chat providers can depend on them).
         services.AddSingleton<OpenAIAuthProvider>();

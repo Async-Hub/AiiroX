@@ -11,6 +11,13 @@ public interface IAIAuthProvider
     /// <summary>The provider this auth handler belongs to.</summary>
     string ProviderId { get; }
 
+    /// <summary>
+    /// When <c>true</c> this provider uses a browser-based OAuth flow; the <c>credential</c>
+    /// parameter of <see cref="ConnectAsync"/> is ignored and can be passed as empty.
+    /// When <c>false</c> the provider expects an API key/secret as the credential.
+    /// </summary>
+    bool UsesOAuthFlow { get; }
+
     /// <summary>Attempts to connect/authenticate with the provider.</summary>
     Task<bool> ConnectAsync(string credential, CancellationToken cancellationToken = default);
 
